@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
-struct contact{
+typedef struct{
 	char name[51];
 	char phone[16];
 	char email[251];
-};
+} contact;
 
 #define LIMIT 250
 #define FILE_NAME "contacts.ccf"
@@ -16,25 +17,22 @@ int counter = 0;
 
 void contactLoad(){
 
-	FILE *file = fopen(FILE_NAME,"r");
-	counter = 0;
+	FILE *file = fopen(FILE_NAME,"a+");
 	
-	if(!file == NULL){
-		rewind(file);			
-		
-		while(!feof(file)){
-			fgets(contacts[counter].name, 50, file);
-			if(strlen(contacts[counter].name) > 1){
+	if(file != NULL){	
+		rewind(file);
+				
+		while(counter < LIMIT && fgets(contacts[counter].name, 50, file)!=NULL){
 				fgets(contacts[counter].phone, 15, file);
 				fgets(contacts[counter].email, 250, file);
 				counter++;
 			}
-		}		
-	}else{
+			
+			fclose(file);
+		}else{
 		printf("Erro ao carregar contatos.\n");
 	}
 	
-	fclose(file);
 }
 
 void contactSave(contact ctt, FILE *file){
@@ -51,7 +49,7 @@ bool fileRewrite(int ignore){
 	remove(FILE_NAME);
 	FILE *file = fopen(FILE_NAME, "a+");
 	
-	if(!file == NULL){
+	if(file != NULL){
 		for(int i=0; i<counter; i++){
 			if(i != ignore){
 				contactSave(contacts[i], file);
@@ -65,10 +63,10 @@ bool fileRewrite(int ignore){
 		}
 		counter = n;
 		r = true;
-	}
-	
-	fclose(file);	
-	
+		
+		fclose(file);
+
+	}	
 	return r;
 }
 
@@ -77,16 +75,16 @@ bool contactInsert(contact ctt){
 	bool r = false;
 	FILE *file = fopen(FILE_NAME, "a+");
 	
-	if(!file == NULL){
+	if(file != NULL){
 		r = true;
 		
 		contactSave(ctt, file);
 		contacts[counter] = ctt;
 		counter++;
+		
+		fclose(file);	
 	}
-	
-	fclose(file);
-	
+		
 	return r;
 }
 
@@ -160,7 +158,7 @@ bool confirm(char *message){
 	char r;
 	
 	printf("%s | S para SIM, outro para NAO", message);
-	scanf("%c", &r);
+	scanf(" %c", &r);
 	
 	if(r == 's' || r == 'S'){
 		return true;
@@ -187,7 +185,7 @@ void menuSelect(){
 	fflush(stdin);
 	
 	if(selected > 0){
-		if(selected <= LIMIT){
+		if(selected <= counter){
 			selected--;
 			printf("\nSelecionado: %s\n", contacts[selected].name);
 			printf("1 - Editar\n");
@@ -225,8 +223,8 @@ void contactList(){
 		printf("------------------------\n");
 	}
 	
-	if(counter > 0)
-		menuSelect();
+	if(counter == 0)
+		printf("Nenhum contato cadastrado.\n");
 }
 
 bool searchMatch(char *a, char *b, int i, int limit){
@@ -266,31 +264,61 @@ void contactSearch(){
 		}
 	}
 	
+	if(!found){
+		printf("Contato nao encontrado. \n");
+		}
+	
 	if(found){
 		menuSelect();
 	}
+}
+void contactDeleteMenu(){
+	int selected;
+		
+	if(counter == 0){
+		printf("\n Nao ha contatos cadastrados. \n");
+		return;
+	}
+	printf("\nLISTA DE CONTATOS\n\n");
+		for(int i = 0; i < counter; i++){
+			contactShow(i);
+			printf("-------------------------\n");
+		}
+		
+		printf("Informe o codigo do contato que deseja excluir (0 para cancelar): ");
+		scanf("%i", &selected);
+		fflush(stdin);
+		
+		if(selected > 0 && selected <= counter){
+			contactDelete(selected - 1);
+		}else if(selected != 0){
+			printf("\nContato inexistente.\n");
+		}
 }
 
 void menuDefault(){
 	int op = 0;
 	
-	while(op != 9){
+	while(op != 5){
 		printf("Selecione a opcao desejada:\n");
-		printf("1 - Novo contato:\n");
-		printf("2 - Lista de contatos:\n");
-		printf("3 - Buscar contato\n");
-		printf("9 - Sair\n");
+		printf("1 - Incluir contato:\n");
+		printf("2 - Listar contatos:\n");
+		printf("3 - Consultar contato:\n");
+		printf("4 - Excluir contato:\n");
+		printf("5 - Sair\n");
 		
 		scanf("%i", &op);
 		fflush(stdin);
 		
-		if(op != 9){
+		if(op != 5){
 			switch(op){
 				case 1: contactCreate();
 				break;
 				case 2: contactList();
 				break;
 				case 3: contactSearch();
+				break;
+				case 4: contactDeleteMenu();
 				break;
 				default: printf("Opcao invalida.");
 			}
